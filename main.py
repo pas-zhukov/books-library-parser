@@ -1,4 +1,5 @@
 import requests
+from pathlib import Path
 
 def download_txt(url: str, path: str):
     response = requests.get(url)
@@ -7,4 +8,6 @@ def download_txt(url: str, path: str):
         file.write(response.content)
 
 
-download_txt('https://tululu.org/txt.php?id=32168', 'book.txt')
+Path("books").mkdir(parents=True, exist_ok=True)
+for i in range(1,11):
+    download_txt(f'https://tululu.org/txt.php?id={i}', f'books/book_id{i}.txt')
