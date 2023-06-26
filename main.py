@@ -36,6 +36,8 @@ def main():
                             help='Use this flag if you want the list of books to be printed after download.')
     args = arg_parser.parse_args()
     books_ids = args.start_id, args.end_id
+    if books_ids[0] > books_ids[1]:
+        raise ValueError("End ID must be greater than start ID!")
 
     books_folder = os.getenv("BOOKS_PATH", 'downloaded_books')
     images_folder = os.getenv("IMAGES_PATH", 'downloaded_images')
