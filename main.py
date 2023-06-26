@@ -1,42 +1,67 @@
 import os
+from argparse import ArgumentParser
+from urllib.parse import urljoin
 from pathlib import Path
-from typing import Tuple, Any, List
-
+from dotenv import load_dotenv
 from bs4 import BeautifulSoup
 import requests
 from pathvalidate import sanitize_filename
-from urllib.parse import urljoin, urlsplit, unquote
+from tqdm import tqdm
 
 SITE_URL = "https://tululu.org"
 
 
 def main():
+    load_dotenv()
+    arg_parser = ArgumentParser(
+        description='This program allows to download some books from elibrary.'
+    )
+    arg_parser.add_argument(
+        '--start_id',
+        help="Books start id. Must be greater than 0.",
+        default=1,
+        type=int
+    )
+    arg_parser.add_argument(
+        '--end_id',
+        help="Books end id. Must be greater than start id.",
+        default=10,
+        type=int
+    )
+    args = arg_parser.parse_args()
+    books_ids = args.start_id, args.end_id
 
-    for idx in range(1, 11):
+    books_folder = os.getenv("BOOKS_PATH")
+    images_folder = os.getenv("IMAGES_PATH")
+
+    for idx in tqdm(range(*books_ids)):
         try:
-            book = parse_book_page(f"https://tululu.org/b{idx}/")
-            bookname = book[0]
-            download_txt(f'https://tululu.org/txt.php?id={idx}', str(idx) + '. ' + bookname + '.txt', 'books')
-            download_image(book[2], book[3], 'images')
-            print(book)
+            response = requests.get(f"{SITE_URL}/b{idx}")
+            response.raise_for_status()
+            raise_if_redirect(response)
+            page_html = response.text
+
+            book = ParsedBook(page_html=page_html)
+
+            download_txt(f"{SITE_URL}/txt.php", f"{idx}. {book.title}", books_folder, params={'id': idx})
+            download_image(book.image['url'], book.image['filename'], images_folder)
         except RedirectDetectedError:
-            print(idx)
             continue
 
 
-class ParseBookPage:
+class ParsedBook:
     def __init__(self, page_html):
         self.page_html = page_html
 
     @property
-    def book_title(self):
-        book_title = BeautifulSoup(self.page_html, 'lxml').find('h1').get_text().split("::")[0].strip()
-        return sanitize_filename(book_title)
+    def title(self):
+        _book_title = BeautifulSoup(self.page_html, 'lxml').find('h1').get_text().split("::")[0].strip()
+        return sanitize_filename(_book_title)
 
     @property
-    def book_author(self):
-        book_author = BeautifulSoup(self.page_html, 'lxml').find('h1').find('a').get_text()
-        return sanitize_filename(book_author)
+    def author(self):
+        _book_author = BeautifulSoup(self.page_html, 'lxml').find('h1').find('a').get_text()
+        return sanitize_filename(_book_author)
 
     @property
     def image(self):
@@ -63,10 +88,10 @@ class ParseBookPage:
         return genre
 
 
-def download_txt(url: str, filename: str, folder: str = 'downloaded_texts') -> str:
+def download_txt(url: str, filename: str, folder: str = 'downloaded_texts', params: dict = None) -> str:
     Path(folder).mkdir(parents=True, exist_ok=True)
     path = os.path.join(folder, filename)
-    response = requests.get(url)
+    response = requests.get(url, params=params)
     response.raise_for_status()
     raise_if_redirect(response)
 
