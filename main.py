@@ -63,26 +63,6 @@ class ParseBookPage:
         return genre
 
 
-def parse_book_page(page_html: str):
-    book_title = BeautifulSoup(page_html, 'lxml').find('h1').get_text().split("::")[0].strip()
-    book_author = BeautifulSoup(page_html, 'lxml').find('h1').find('a').get_text()
-    book_title, book_author = sanitize_filename(book_title), sanitize_filename(book_author)
-
-    image_url = BeautifulSoup(page_html, 'lxml').find('div', {'class': 'bookimage'}).find('a').find('img').get('src')
-    full_image_url = urljoin(SITE_URL, image_url)
-
-    image_filename = os.path.split(image_url)[1]
-
-    comments = BeautifulSoup(page_html, 'lxml').find('div', {'id': 'content'}).find_all('div', {'class': 'texts'})
-    comments_texts = []
-    for comment in comments:
-        comments_texts.append(comment.find('span').get_text())
-
-    genre = BeautifulSoup(page_html, 'lxml').find('span', class_="d_book").find('a').get_text()
-
-    return book_title, book_author, full_image_url, image_filename, comments_texts, genre
-
-
 def download_txt(url: str, filename: str, folder: str = 'downloaded_texts') -> str:
     Path(folder).mkdir(parents=True, exist_ok=True)
     path = os.path.join(folder, filename)
