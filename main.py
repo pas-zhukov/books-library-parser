@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Tuple, Any
+from typing import Tuple, Any, List
 
 from bs4 import BeautifulSoup
 import requests
@@ -23,7 +23,7 @@ def main():
             continue
 
 
-def parse_book(url: str) -> tuple[str, str, str, Any]:
+def parse_book(url: str) -> tuple[str, str, str, Any, list[Any]]:
     response = requests.get(url)
     response.raise_for_status()
     raise_if_redirect(response)
@@ -38,7 +38,12 @@ def parse_book(url: str) -> tuple[str, str, str, Any]:
 
     filename = os.path.split(image_url)[1]
 
-    return book_title, book_author, full_image_url, filename
+    comments = BeautifulSoup(html, 'lxml').find('div', {'id': 'content'}).find_all('div', {'class': 'texts'})
+    comments_texts = []
+    for comment in comments:
+        comments_texts.append(comment.find('span').get_text())
+
+    return book_title, book_author, full_image_url, filename, comments_texts
 
 
 def download_txt(url: str, filename: str, folder: str = 'downloaded_texts') -> str:
