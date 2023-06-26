@@ -38,12 +38,14 @@ def parse_book(url: str) -> tuple[str, str, str, Any, list[Any]]:
 
     filename = os.path.split(image_url)[1]
 
-    comments = BeautifulSoup(html, 'lxml').find('div', {'id': 'content'}).find_all('div', {'class': 'texts'})
+    comments = BeautifulSoup(page_html, 'lxml').find('div', {'id': 'content'}).find_all('div', {'class': 'texts'})
     comments_texts = []
     for comment in comments:
         comments_texts.append(comment.find('span').get_text())
 
-    return book_title, book_author, full_image_url, filename, comments_texts
+    genre = BeautifulSoup(page_html, 'lxml').find('span', class_="d_book").find('a').get_text()
+
+    return book_title, book_author, full_image_url, filename, comments_texts, genre
 
 
 def download_txt(url: str, filename: str, folder: str = 'downloaded_texts') -> str:
