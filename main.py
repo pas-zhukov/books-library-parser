@@ -17,12 +17,14 @@ def main():
         description='This program allows to download some books from elibrary.'
     )
     arg_parser.add_argument(
+        '-s',
         '--start_id',
         help="Books start id. Must be greater than 0.",
         default=1,
         type=int
     )
     arg_parser.add_argument(
+        '-e',
         '--end_id',
         help="Books end id. Must be greater than start id.",
         default=10,
@@ -34,19 +36,21 @@ def main():
     books_folder = os.getenv("BOOKS_PATH")
     images_folder = os.getenv("IMAGES_PATH")
 
-    for idx in tqdm(range(*books_ids)):
+    for book_id in tqdm(range(*books_ids)):
         try:
-            response = requests.get(f"{SITE_URL}/b{idx}")
+            response = requests.get(f"{SITE_URL}/b{book_id}")
             response.raise_for_status()
             raise_if_redirect(response)
             page_html = response.text
 
             book = ParsedBook(page_html=page_html)
 
-            download_txt(f"{SITE_URL}/txt.php", f"{idx}. {book.title}", books_folder, params={'id': idx})
+            download_txt(f"{SITE_URL}/txt.php", f"{book_id}. {book.title}", books_folder, params={'id': book_id})
             download_image(book.image['url'], book.image['filename'], images_folder)
         except RedirectDetectedError:
             continue
+
+    print("Done!")
 
 
 class ParsedBook:
