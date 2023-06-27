@@ -73,19 +73,31 @@ def main():
             tqdm.write(f"Book with ID={book_id} wasn't "
                        "downloaded because of Connection error. "
                        "Waiting for internet connection to restore.")
-            while True:
-                try:
-                    requests.get("https://httpstat.us/200")
-                    break
-                except requests.ConnectionError:
-                    continue
+            if wait_for_connection():
+                tqdm.write("Connection restored. Continue downloading.")
+            else:
+                tqdm.write("Internet connection was completely lost. Interrupt downloading.")
+                break
 
-
-    print("Download complete!")
+    print("Download finished.")
     if args.list:
         print("Books list: \n")
         for book in downloaded_books:
             print(book)
+
+
+def wait_for_connection(timeout: int = os.getenv("CONNECTION_TIMEOUT", 120),
+                        delay: int = 5):
+    time_spent = 0
+    while time_spent < timeout:
+        try:
+            requests.get("https://httpstat.us/200")
+            break
+        except requests.ConnectionError:
+            time.sleep(delay)
+        time_spent += delay
+
+    return timeout >= time_spent
 
 
 class ParsedBook:
