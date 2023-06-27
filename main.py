@@ -51,15 +51,15 @@ def main():
             raise_if_redirect(response)
             page_html = response.text
 
-            book = ParsedBook(page_html=page_html)
+            book = parse_book_page(page_html=page_html)
             downloaded_books.append(book)
 
             download_txt(f"{SITE_URL}/txt.php",
-                         f"{book_id}. {book.title}.txt",
+                         f"{book_id}. {book['title']}.txt",
                          books_folder,
                          params={"id": book_id})
-            download_image(book.image["url"],
-                           book.image["filename"],
+            download_image(book["image_url"],
+                           book["image_filename"],
                            images_folder)
         except RedirectDetectedError:
             # Метод write() используется чтобы прогресс-бар не ломался из-за вывода через print()
@@ -83,7 +83,12 @@ def main():
     if args.list:
         print("Books list: \n")
         for book in downloaded_books:
-            print(book)
+            book_str_repr = f"""
+                        Название: {book["title"]}
+                        Автор: {book["author"]}
+                        Жанр: {book["genre"]}"""
+            book_str_repr = tw.dedent(book_str_repr)
+            print(book_str_repr)
 
 
 def wait_for_connection(timeout: int = os.getenv("CONNECTION_TIMEOUT", 120),
@@ -107,56 +112,42 @@ def wait_for_connection(timeout: int = os.getenv("CONNECTION_TIMEOUT", 120),
     return False
 
 
-class ParsedBook:
+def parse_book_page(page_html: str):
     """
 
-    The ParsedBook class is responsible for parsing the HTML page of a book
-    from the Tululu website and extracting relevant information
-    such as the book title, author, genre, image URL, and comments.
-    It also provides a string representation of the book object.
+     Function parses the HTML content of a book page
+     from the Tululu website and extract relevant
+     information such as book title, author, image URL,
+     image filename, comments, and genre.
+     The function returns a dictionary containing this information.
+
+    :param page_html: HTML content of a book page
+    :return: dictionary containing book metadata
     """
-    def __init__(self, page_html):
-        self.page_html = page_html
+    book_title = BeautifulSoup(page_html, "lxml").find("h1").get_text().split("::")[0].strip()
+    book_title = sanitize_filename(book_title)
+    book_author = BeautifulSoup(page_html, "lxml").find("h1").find("a").get_text()
+    book_author = sanitize_filename(book_author)
 
-    @property
-    def title(self):
-        _book_title = BeautifulSoup(self.page_html, "lxml").find("h1").get_text().split("::")[0].strip()
-        return sanitize_filename(_book_title)
+    _image_url = BeautifulSoup(page_html, "lxml").find("div", {"class": "bookimage"}).find("a").find("img").get(
+        "src")
+    full_image_url = urljoin(SITE_URL, _image_url)
+    image_filename = os.path.split(_image_url)[1]
 
-    @property
-    def author(self):
-        _book_author = BeautifulSoup(self.page_html, "lxml").find("h1").find("a").get_text()
-        return sanitize_filename(_book_author)
+    _comments = BeautifulSoup(page_html, "lxml").find("div", {"id": "content"}).find_all("div", {"class": "texts"})
+    comments_texts = [comment.find("span").get_text() for comment in _comments]
 
-    @property
-    def image(self):
-        _image_url = BeautifulSoup(self.page_html, "lxml").find("div", {"class": "bookimage"}).find("a").find("img").get(
-            "src")
-        full_image_url = urljoin(SITE_URL, _image_url)
-        image_filename = os.path.split(_image_url)[1]
-        return {
-            "url": full_image_url,
-            "filename": image_filename
-        }
+    genre = BeautifulSoup(page_html, "lxml").find("span", class_="d_book").find("a").get_text()
 
-    @property
-    def comments(self):
-        _comments = BeautifulSoup(self.page_html, "lxml").find("div", {"id": "content"}).find_all("div", {"class": "texts"})
-        comments_texts = [comment.find("span").get_text() for comment in _comments]
-        return comments_texts
-
-    @property
-    def genre(self):
-        genre = BeautifulSoup(self.page_html, "lxml").find("span", class_="d_book").find("a").get_text()
-        return genre
-
-    def __str__(self):
-        text = f"""
-            Название: {self.title}
-            Автор: {self.author}
-            Жанр: {self.genre}"""
-        text = tw.dedent(text)
-        return text
+    book_info = {
+        'title': book_title,
+        'author': book_author,
+        'image_url': full_image_url,
+        'image_filename': image_filename,
+        'comments_texts': comments_texts,
+        'genre': genre
+    }
+    return book_info
 
 
 def download_txt(url: str,
