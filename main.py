@@ -16,35 +16,34 @@ SITE_URL = "https://tululu.org"
 def main():
     load_dotenv()
     arg_parser = ArgumentParser(
-        description='This program allows to download some books from elibrary.'
+        description="This program allows to download some books from elibrary."
     )
     arg_parser.add_argument(
-        '-s',
-        '--start_id',
+        "-s",
+        "--start_id",
         help="Books start id. Must be greater than 0.",
         default=1,
         type=int
     )
     arg_parser.add_argument(
-        '-e',
-        '--end_id',
+        "-e",
+        "--end_id",
         help="Books end id. Must be greater than start id.",
         default=10,
         type=int
     )
-    arg_parser.add_argument('--list',
-                            action='store_true',
-                            help='Use this flag if you want the list of books to be printed after download.')
+    arg_parser.add_argument("--list",
+                            action="store_true",
+                            help="Use this flag if you want the list of books to be printed after download.")
     args = arg_parser.parse_args()
-    books_ids = args.start_id, args.end_id
-    if books_ids[0] > books_ids[1]:
+    if args.start_id > args.end_id:
         raise ValueError("End ID must be greater than start ID!")
 
-    books_folder = os.getenv("BOOKS_PATH", 'downloaded_books')
-    images_folder = os.getenv("IMAGES_PATH", 'downloaded_images')
+    books_folder = os.getenv("BOOKS_PATH", "downloaded_books")
+    images_folder = os.getenv("IMAGES_PATH", "downloaded_images")
 
     downloaded_books = []
-    for book_id in tqdm(range(*books_ids)):
+    for book_id in tqdm(range(args.start_id, args.end_id)):
         try:
             response = requests.get(f"{SITE_URL}/b{book_id}/")
             response.raise_for_status()
@@ -57,9 +56,9 @@ def main():
             download_txt(f"{SITE_URL}/txt.php",
                          f"{book_id}. {book.title}.txt",
                          books_folder,
-                         params={'id': book_id})
-            download_image(book.image['url'],
-                           book.image['filename'],
+                         params={"id": book_id})
+            download_image(book.image["url"],
+                           book.image["filename"],
                            images_folder)
         except RedirectDetectedError:
             continue
@@ -84,34 +83,34 @@ class ParsedBook:
 
     @property
     def title(self):
-        _book_title = BeautifulSoup(self.page_html, 'lxml').find('h1').get_text().split("::")[0].strip()
+        _book_title = BeautifulSoup(self.page_html, "lxml").find("h1").get_text().split("::")[0].strip()
         return sanitize_filename(_book_title)
 
     @property
     def author(self):
-        _book_author = BeautifulSoup(self.page_html, 'lxml').find('h1').find('a').get_text()
+        _book_author = BeautifulSoup(self.page_html, "lxml").find("h1").find("a").get_text()
         return sanitize_filename(_book_author)
 
     @property
     def image(self):
-        _image_url = BeautifulSoup(self.page_html, 'lxml').find('div', {'class': 'bookimage'}).find('a').find('img').get(
-            'src')
+        _image_url = BeautifulSoup(self.page_html, "lxml").find("div", {"class": "bookimage"}).find("a").find("img").get(
+            "src")
         full_image_url = urljoin(SITE_URL, _image_url)
         image_filename = os.path.split(_image_url)[1]
         return {
-            'url': full_image_url,
-            'filename': image_filename
+            "url": full_image_url,
+            "filename": image_filename
         }
 
     @property
     def comments(self):
-        _comments = BeautifulSoup(self.page_html, 'lxml').find('div', {'id': 'content'}).find_all('div', {'class': 'texts'})
-        comments_texts = [comment.find('span').get_text() for comment in _comments]
+        _comments = BeautifulSoup(self.page_html, "lxml").find("div", {"id": "content"}).find_all("div", {"class": "texts"})
+        comments_texts = [comment.find("span").get_text() for comment in _comments]
         return comments_texts
 
     @property
     def genre(self):
-        genre = BeautifulSoup(self.page_html, 'lxml').find('span', class_="d_book").find('a').get_text()
+        genre = BeautifulSoup(self.page_html, "lxml").find("span", class_="d_book").find("a").get_text()
         return genre
 
     def __str__(self):
@@ -125,7 +124,7 @@ class ParsedBook:
 
 def download_txt(url: str,
                  filename: str,
-                 folder: str = 'downloaded_texts',
+                 folder: str = "downloaded_texts",
                  params: dict = None) -> str:
     """
 
@@ -151,7 +150,7 @@ def download_txt(url: str,
 
 def download_image(image_url: str,
                    filename: str,
-                   folder: str = 'downloaded_images') -> str:
+                   folder: str = "downloaded_images") -> str:
     """
 
     This function downloads an image from a given URL
@@ -169,7 +168,7 @@ def download_image(image_url: str,
     response.raise_for_status()
     binary_image = response.content
 
-    with open(path, 'bw+') as file:
+    with open(path, "bw+") as file:
         file.write(binary_image)
     return path
 
@@ -191,7 +190,7 @@ class RedirectDetectedError(requests.HTTPError):
     Custom exception, that handles redirect responses
     from HTTP requests made with requests library.
     """
-    def __init__(self, message: str = 'Redirect detected!'):
+    def __init__(self, message: str = "Redirect detected!"):
         super().__init__(message)
 
 
