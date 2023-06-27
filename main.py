@@ -50,8 +50,9 @@ def main():
             response.raise_for_status()
             raise_if_redirect(response)
             page_html = response.text
+            page_url = response.url
 
-            book = parse_book_page(page_html=page_html)
+            book = parse_book_page(page_html=page_html, page_url=page_url)
             downloaded_books.append(book)
 
             download_txt(f"{SITE_URL}/txt.php",
@@ -112,7 +113,7 @@ def wait_for_connection(timeout: int = os.getenv("CONNECTION_TIMEOUT", 120),
     return False
 
 
-def parse_book_page(page_html: str):
+def parse_book_page(page_html: str, page_url: str):
     """
 
      Function parses the HTML content of a book page
@@ -122,6 +123,7 @@ def parse_book_page(page_html: str):
      The function returns a dictionary containing this information.
 
     :param page_html: HTML content of a book page
+    :param page_url: page URL (required to find image_url)
     :return: dictionary containing book metadata
     """
     book_title = BeautifulSoup(page_html, "lxml").find("h1").get_text().split("::")[0].strip()
@@ -131,7 +133,7 @@ def parse_book_page(page_html: str):
 
     _image_url = BeautifulSoup(page_html, "lxml").find("div", {"class": "bookimage"}).find("a").find("img").get(
         "src")
-    full_image_url = urljoin(SITE_URL, _image_url)
+    full_image_url = urljoin(page_url, _image_url)
     image_filename = os.path.split(_image_url)[1]
 
     _comments = BeautifulSoup(page_html, "lxml").find("div", {"id": "content"}).find_all("div", {"class": "texts"})
