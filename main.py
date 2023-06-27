@@ -61,7 +61,8 @@ def main():
                            book.image["filename"],
                            images_folder)
         except RedirectDetectedError:
-            continue
+            tqdm.write(f"Книга с ID={book_id} не была скачана, "
+                       "так как на сайте отсутствует соответствующая ей страница.")
 
     print("Download complete!")
     if args.list:
