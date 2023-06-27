@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 import os
 from pathlib import Path
 import textwrap as tw
+import time
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
@@ -61,8 +62,24 @@ def main():
                            book.image["filename"],
                            images_folder)
         except RedirectDetectedError:
+            # Метод write() используется чтобы прогресс-бар не ломался из-за вывода через print()
             tqdm.write(f"Book with ID={book_id} wasn't "
                        "downloaded because there is no page for this book.")
+        except requests.HTTPError:
+            tqdm.write(f"Book with ID={book_id} wasn't "
+                       "downloaded because URL used for downloading this book "
+                       "is wrong or incorrect.")
+        except requests.ConnectionError:
+            tqdm.write(f"Book with ID={book_id} wasn't "
+                       "downloaded because of Connection error. "
+                       "Waiting for internet connection to restore.")
+            while True:
+                try:
+                    requests.get("https://httpstat.us/200")
+                    break
+                except requests.ConnectionError:
+                    continue
+
 
     print("Download complete!")
     if args.list:
