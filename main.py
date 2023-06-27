@@ -88,16 +88,23 @@ def main():
 
 def wait_for_connection(timeout: int = os.getenv("CONNECTION_TIMEOUT", 120),
                         delay: int = 5):
-    time_spent = 0
-    while time_spent < timeout:
+    """
+
+    Function purpose is to wait for an internet connection
+    to be restored in case of a connection error during
+    the book downloading process.
+
+    :param timeout: maximum amount of time to wait for the internet connection to be restored
+    :param delay: the amount of time to wait between connection checks
+    :return: True if connection was restored else False
+    """
+    for _ in range(0, timeout, delay):
         try:
             requests.get("https://httpstat.us/200")
-            break
+            return True
         except requests.ConnectionError:
             time.sleep(delay)
-        time_spent += delay
-
-    return timeout >= time_spent
+    return False
 
 
 class ParsedBook:
