@@ -1,12 +1,13 @@
-import os
-import textwrap as tw
 from argparse import ArgumentParser
-from urllib.parse import urljoin
+import os
 from pathlib import Path
-from dotenv import load_dotenv
+import textwrap as tw
+from urllib.parse import urljoin
+
 from bs4 import BeautifulSoup
-import requests
+from dotenv import load_dotenv
 from pathvalidate import sanitize_filename
+import requests
 from tqdm import tqdm
 
 SITE_URL = "https://tululu.org"
