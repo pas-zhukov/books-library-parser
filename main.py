@@ -106,7 +106,7 @@ def wait_for_connection(timeout: int = os.getenv("CONNECTION_TIMEOUT", 120),
     """
     for _ in range(0, timeout, delay):
         try:
-            requests.get("https://httpstat.us/200")
+            requests.get(SITE_URL)
             return True
         except requests.ConnectionError:
             time.sleep(delay)
