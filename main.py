@@ -126,20 +126,22 @@ def parse_book_page(page_html: str, page_url: str):
     :param page_url: page URL (required to find image_url)
     :return: dictionary containing book metadata
     """
-    book_title = BeautifulSoup(page_html, "lxml").find("h1").get_text().split("::")[0].strip()
+    soup = BeautifulSoup(page_html, "lxml")
+
+    book_title = soup.find("h1").get_text().split("::")[0].strip()
     book_title = sanitize_filename(book_title)
-    book_author = BeautifulSoup(page_html, "lxml").find("h1").find("a").get_text()
+    book_author = soup.find("h1").find("a").get_text()
     book_author = sanitize_filename(book_author)
 
-    _image_url = BeautifulSoup(page_html, "lxml").find("div", {"class": "bookimage"}).find("a").find("img").get(
+    _image_url = soup.find("div", {"class": "bookimage"}).find("a").find("img").get(
         "src")
     full_image_url = urljoin(page_url, _image_url)
     image_filename = os.path.split(_image_url)[1]
 
-    _comments = BeautifulSoup(page_html, "lxml").find("div", {"id": "content"}).find_all("div", {"class": "texts"})
+    _comments = soup.find("div", {"id": "content"}).find_all("div", {"class": "texts"})
     comments_texts = [comment.find("span").get_text() for comment in _comments]
 
-    genre = BeautifulSoup(page_html, "lxml").find("span", class_="d_book").find("a").get_text()
+    genre = soup.find("span", class_="d_book").find("a").get_text()
 
     book_info = {
         'title': book_title,
