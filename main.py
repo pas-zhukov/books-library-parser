@@ -42,6 +42,7 @@ def main():
 
     books_folder = os.getenv("BOOKS_PATH", "downloaded_books")
     images_folder = os.getenv("IMAGES_PATH", "downloaded_images")
+    connection_timeout = os.getenv("CONNECTION_TIMEOUT", 120)
 
     downloaded_books = []
     for book_id in tqdm(range(args.start_id, args.end_id)):
@@ -73,12 +74,9 @@ def main():
         except requests.ConnectionError:
             tqdm.write(f"Book with ID={book_id} wasn't "
                        "downloaded because of Connection error. "
-                       "Waiting for internet connection to restore.")
-            if wait_for_connection():
-                tqdm.write("Connection restored. Continue downloading.")
-            else:
-                tqdm.write("Internet connection was completely lost. Interrupt downloading.")
-                break
+                       f"Waiting {connection_timeout} seconds for "
+                       "internet connection to restore.")
+            time.sleep(connection_timeout)
 
     print("Download finished.")
     if args.list:
@@ -90,27 +88,6 @@ def main():
                         Жанр: {book["genre"]}"""
             book_str_repr = tw.dedent(book_str_repr)
             print(book_str_repr)
-
-
-def wait_for_connection(timeout: int = os.getenv("CONNECTION_TIMEOUT", 120),
-                        delay: int = 5):
-    """
-
-    Function purpose is to wait for an internet connection
-    to be restored in case of a connection error during
-    the book downloading process.
-
-    :param timeout: maximum amount of time to wait for the internet connection to be restored
-    :param delay: the amount of time to wait between connection checks
-    :return: True if connection was restored else False
-    """
-    for _ in range(0, timeout, delay):
-        try:
-            requests.get(SITE_URL)
-            return True
-        except requests.ConnectionError:
-            time.sleep(delay)
-    return False
 
 
 def parse_book_page(page_html: str, page_url: str):
