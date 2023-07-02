@@ -30,7 +30,6 @@ def main():
                 page_html = response.text
 
                 book = parse_book_page(page_html=page_html, page_url=book_link)
-
                 book['book_path'] = download_txt(f"{SITE_URL}/txt.php",
                                                  f"{book['title']}.txt",
                                                  books_folder,
