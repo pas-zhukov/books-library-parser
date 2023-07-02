@@ -5,6 +5,7 @@ import json
 from urllib.parse import urljoin, urlsplit
 
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 import requests
 from tqdm import tqdm, trange
 
@@ -14,12 +15,13 @@ CATEGORY_ID = 55
 
 
 def main():
+    load_dotenv()
     books_folder = os.getenv("BOOKS_PATH", "downloaded_books")
     images_folder = os.getenv("IMAGES_PATH", "downloaded_images")
     connection_timeout = os.getenv("CONNECTION_TIMEOUT", 120)
 
     try:
-        book_links = parse_category(CATEGORY_ID, 2)
+        book_links = parse_category(CATEGORY_ID, 5)
         downloaded_books = []
         for book_link in tqdm(book_links, desc='Downloading books'):
             book_id = re.search(r'\d+', urlsplit(book_link).path).group()

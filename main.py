@@ -155,7 +155,7 @@ def download_txt(url: str,
 
     with open(path, "wb+") as file:
         file.write(response.content)
-    return path
+    return path.replace('\\', '/')
 
 
 def download_image(image_url: str,
@@ -180,7 +180,7 @@ def download_image(image_url: str,
 
     with open(path, "bw+") as file:
         file.write(binary_image)
-    return path
+    return path.replace('\\', '/')
 
 
 def raise_if_redirect(response: requests.Response) -> None:
