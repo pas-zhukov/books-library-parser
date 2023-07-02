@@ -21,7 +21,7 @@ def main():
     connection_timeout = os.getenv("CONNECTION_TIMEOUT", 120)
 
     try:
-        book_links = parse_category(CATEGORY_ID, 5)
+        book_links = parse_category(CATEGORY_ID, 2)
         downloaded_books = []
         for book_link in tqdm(book_links, desc='Downloading books'):
             book_id = re.search(r'\d+', urlsplit(book_link).path).group()
@@ -77,11 +77,14 @@ def parse_category(category_id: int, pages_count: int = 200) -> list:
         page_html = response.text
 
         soup = BeautifulSoup(page_html, 'lxml')
-        books = soup.find('div', {'id': 'content'}).find_all('table', class_='d_book')
+        selector = 'div[id="content"] table.d_book'
+        books = soup.select(selector)
         for book in books:
-            book_url = book.find('a').get('href')
+            url_selector = 'a'
+            book_url = book.select_one(url_selector).get('href')
             book_full_url = urljoin(category_url, book_url)
             book_links.append(book_full_url)
+    print(book_links)
     return book_links
 
 

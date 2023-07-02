@@ -105,20 +105,24 @@ def parse_book_page(page_html: str, page_url: str):
     """
     soup = BeautifulSoup(page_html, "lxml")
 
-    book_title = soup.find("h1").get_text().split("::")[0].strip()
+    title_selector = 'h1'
+    book_title = soup.select_one(title_selector).get_text().split("::")[0].strip()
     book_title = sanitize_filename(book_title)
-    book_author = soup.find("h1").find("a").get_text()
+    author_selector = 'h1 a'
+    book_author = soup.select_one(author_selector).get_text()
     book_author = sanitize_filename(book_author)
 
-    _image_url = soup.find("div", {"class": "bookimage"}).find("a").find("img").get(
-        "src")
+    img_selector = 'div.bookimage a img'
+    _image_url = soup.select_one(img_selector).get("src")
     full_image_url = urljoin(page_url, _image_url)
     image_filename = os.path.split(_image_url)[1]
 
-    _comments = soup.find("div", {"id": "content"}).find_all("div", {"class": "texts"})
-    comments_texts = [comment.find("span").get_text() for comment in _comments]
+    comm_selector = 'div[id="content"] div.texts span'
+    _comments = soup.select(comm_selector)
+    comments_texts = [comment.get_text() for comment in _comments]
 
-    _genres = soup.find("span", class_="d_book").find_all("a")
+    genre_selector = 'span.d_book a'
+    _genres = soup.select(genre_selector)
     genres = [genre.get_text() for genre in _genres]
 
     book_metadata = {
