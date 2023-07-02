@@ -118,7 +118,8 @@ def parse_book_page(page_html: str, page_url: str):
     _comments = soup.find("div", {"id": "content"}).find_all("div", {"class": "texts"})
     comments_texts = [comment.find("span").get_text() for comment in _comments]
 
-    genre = soup.find("span", class_="d_book").find("a").get_text()
+    _genres = soup.find("span", class_="d_book").find_all("a")
+    genres = [genre.get_text() for genre in _genres]
 
     book_metadata = {
         'title': book_title,
@@ -126,7 +127,7 @@ def parse_book_page(page_html: str, page_url: str):
         'image_url': full_image_url,
         'image_filename': image_filename,
         'comments_texts': comments_texts,
-        'genre': genre
+        'genre': genres
     }
     return book_metadata
 
