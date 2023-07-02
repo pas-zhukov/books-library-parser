@@ -30,15 +30,15 @@ def main():
                 page_html = response.text
 
                 book = parse_book_page(page_html=page_html, page_url=book_link)
-                downloaded_books.append(book)
 
-                download_txt(f"{SITE_URL}/txt.php",
-                             f"{book['title']}.txt",
-                             books_folder,
-                             params={'id': book_id})
-                download_image(book["image_url"],
-                               book["image_filename"],
-                               images_folder)
+                book['book_path'] = download_txt(f"{SITE_URL}/txt.php",
+                                                 f"{book['title']}.txt",
+                                                 books_folder,
+                                                 params={'id': book_id})
+                book['img_src'] = download_image(book.pop("image_url"),
+                                                 book.pop("image_filename"),
+                                                 images_folder)
+                downloaded_books.append(book)
             except RedirectDetectedError:
                 # Метод write() используется чтобы прогресс-бар не ломался из-за вывода через print()
                 tqdm.write(f"Book with ID={book_id} wasn't "

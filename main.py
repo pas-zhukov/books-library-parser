@@ -126,8 +126,8 @@ def parse_book_page(page_html: str, page_url: str):
         'author': book_author,
         'image_url': full_image_url,
         'image_filename': image_filename,
-        'comments_texts': comments_texts,
-        'genre': genres
+        'comments': comments_texts,
+        'genres': genres
     }
     return book_metadata
 
