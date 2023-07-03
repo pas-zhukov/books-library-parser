@@ -118,6 +118,12 @@ def parse_category(category_id: int, start_page: int = 1, end_page: int = None) 
 
 
 def get_pages_count(category_page_url: str) -> int:
+    """
+    Extracts the total number of pages for a given category on the Tululu website.
+
+    :param category_page_url: URL of the category page to be parsed
+    :return: total number of pages for the given category
+    """
     response = requests.get(category_page_url)
     response.raise_for_status()
     raise_if_redirect(response)
@@ -130,6 +136,11 @@ def get_pages_count(category_page_url: str) -> int:
 
 
 def parse_args():
+    """
+    Parse the command-line arguments provided by the user and returning them as an object.
+
+    :return: object containing the parsed arguments as attributes
+    """
     arg_parser = ArgumentParser(
         description="This program allows to download some books from tululu specified by genre."
     )
