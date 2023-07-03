@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 import os
 import re
 import time
@@ -16,12 +17,33 @@ CATEGORY_ID = 55
 
 def main():
     load_dotenv()
+    arg_parser = ArgumentParser(
+        description="This program allows to download some books from tululu specified by genre."
+    )
+    arg_parser.add_argument(
+        "-s",
+        "--start_page",
+        help="Page number from which to begin downloading books (in category).",
+        default=1,
+        type=int
+    )
+    arg_parser.add_argument(
+        "-e",
+        "--end_page",
+        help="End page where to stop.",
+        default=None,
+        type=int
+    )
+    args = arg_parser.parse_args()
+    if args.end_page is not None and args.start_page > args.end_page:
+        raise ValueError("End page number must be greater than start number!")
+
     books_folder = os.getenv("BOOKS_PATH", "downloaded_books")
     images_folder = os.getenv("IMAGES_PATH", "downloaded_images")
     connection_timeout = os.getenv("CONNECTION_TIMEOUT", 120)
 
     try:
-        book_links = parse_category(CATEGORY_ID, 2)
+        book_links = parse_category(CATEGORY_ID, args.start_page, args.end_page)
         downloaded_books = []
         for book_link in tqdm(book_links, desc='Downloading books'):
             book_id = re.search(r'\d+', urlsplit(book_link).path).group()
@@ -66,9 +88,11 @@ def main():
         tqdm.write(f"Connection Error! Please check your internet connection.")
 
 
-def parse_category(category_id: int, pages_count: int = 200) -> list:
+def parse_category(category_id: int, start_page: int = 1, end_page: int = None) -> list:
     book_links = []
-    for page_index in trange(1, pages_count, desc=f'Downloading books links from category with ID={category_id}'):
+    if not end_page:
+        end_page = get_pages_count(f"{SITE_URL}/l{category_id}/1/")
+    for page_index in trange(start_page, end_page, desc=f'Downloading books links from category with ID={category_id}'):
         category_url = f"{SITE_URL}/l{category_id}/{page_index}/"
 
         response = requests.get(category_url)
@@ -86,6 +110,18 @@ def parse_category(category_id: int, pages_count: int = 200) -> list:
             book_links.append(book_full_url)
     print(book_links)
     return book_links
+
+
+def get_pages_count(category_page_url: str) -> int:
+    response = requests.get(category_page_url)
+    response.raise_for_status()
+    raise_if_redirect(response)
+    category_page = response.text
+    soup = BeautifulSoup(category_page, 'lxml')
+    selector = 'a.npage:nth-child(7)'
+    _pages_count = soup.select_one(selector)
+    pages_count = int(_pages_count.get_text())
+    return pages_count
 
 
 if __name__ == '__main__':
