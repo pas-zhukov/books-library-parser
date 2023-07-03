@@ -41,7 +41,7 @@ def main():
     connection_timeout = os.getenv("CONNECTION_TIMEOUT", 120)
 
     try:
-        book_links = parse_category(args.category_id, args.start_page, args.end_page)
+        book_links = parse_category(args.category_id, args.start_page, end_page)
         downloaded_books = []
         for book_link in tqdm(book_links, desc='Downloading books'):
             book_id = re.search(r'\d+', urlsplit(book_link).path).group()
@@ -89,6 +89,14 @@ def main():
 
 
 def parse_category(category_id: int, start_page: int = 1, end_page: int = None) -> list:
+    """
+    Parses the book links from a given category on the Tululu website.
+
+    :param category_id: ID of the category to download.
+    :param start_page:  page number from which to begin downloading books (in category).
+    :param end_page: end page where to stop
+    :return: A list of book links
+    """
     book_links = []
     for page_index in trange(start_page, end_page + 1, desc=f'Downloading books links from category with ID={category_id}'):
         category_url = f"{SITE_URL}/l{category_id}/{page_index}/"
