@@ -73,11 +73,10 @@ def main():
                        f"Waiting {connection_timeout} seconds for "
                        "internet connection to restore.")
             time.sleep(connection_timeout)
-    downloaded_books = json.dumps(downloaded_books, ensure_ascii=False)
     with open(os.path.join(master_folder, "books_metadata.json"),
               "w+",
               encoding="utf-8") as file:
-        file.write(downloaded_books)
+        json.dump(downloaded_books, file, ensure_ascii=False)
 
 
 def parse_category(category_id: int,
