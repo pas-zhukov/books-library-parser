@@ -18,9 +18,9 @@ def main():
     load_dotenv()
     args = parse_args()
     if args.start_page > args.end_page:
-        raise ValueError("End page number must be greater than start number!")
+        raise PageNumberError("End page number must be greater than start number!")
     if args.start_page <= 0 or args.end_page <= 0:
-        raise ValueError("Page numbers must be positive integers!")
+        raise PageNumberError("Page numbers must be positive integers!")
 
     master_folder = args.dest_folder
     _books_folder = os.getenv("BOOKS_PATH", "downloaded_books")
@@ -200,6 +200,12 @@ def parse_args():
                             default=False)
     args = arg_parser.parse_args()
     return args
+
+
+class PageNumberError(ValueError):
+    """Custom exception, that handles wrong page numbers."""
+    def __init__(self, message: str = "Wrong page number!"):
+        super().__init__(message)
 
 
 if __name__ == "__main__":
