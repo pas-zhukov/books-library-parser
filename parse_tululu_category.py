@@ -131,25 +131,6 @@ def parse_category(category_id: int,
     return book_links
 
 
-def get_pages_count(category_page_url: str) -> int:
-    """
-    Extracts the total number of pages
-    for a given category on the Tululu website.
-
-    :param category_page_url: URL of the category page to be parsed
-    :return: total number of pages for the given category
-    """
-    response = requests.get(category_page_url)
-    response.raise_for_status()
-    raise_if_redirect(response)
-    category_page = response.text
-    soup = BeautifulSoup(category_page, "lxml")
-    selector = "a.npage:nth-child(7)"
-    _pages_count = soup.select_one(selector)
-    pages_count = int(_pages_count.get_text())
-    return pages_count
-
-
 def parse_args():
     """
     Parse the command-line arguments provided
