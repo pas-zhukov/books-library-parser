@@ -16,25 +16,10 @@ from main import SITE_URL, RedirectDetectedError, raise_if_redirect
 
 def main():
     load_dotenv()
-
     args = parse_args()
-    if not args.end_page:
-        try:
-            end_page = get_pages_count(f"{SITE_URL}/l{args.category_id}/1/")
-        except RedirectDetectedError:
-            tqdm.write("Unable to download pages count."
-                       " Probably wrong category ID.")
-        except requests.HTTPError:
-            tqdm.write("Unable to download pages count. "
-                       "Wrong URL. Check the category ID.")
-        except requests.ConnectionError:
-            tqdm.write("Connection Error! Please check your"
-                       " internet connection.")
-    else:
-        end_page = args.end_page
-    if args.start_page > end_page:
+    if args.start_page > args.end_page:
         raise ValueError("End page number must be greater than start number!")
-    if args.start_page <= 0 or end_page <= 0:
+    if args.start_page <= 0 or args.end_page <= 0:
         raise ValueError("Page numbers must be positive integers!")
 
     master_folder = args.dest_folder
@@ -44,75 +29,68 @@ def main():
     images_folder = os.path.join(master_folder, _images_folder)
     connection_timeout = os.getenv("CONNECTION_TIMEOUT", 120)
 
-    try:
-        book_links = parse_category(args.category_id,
-                                    args.start_page,
-                                    end_page)
-        downloaded_books = []
-        for book_link in tqdm(book_links, desc="Downloading books"):
-            book_id = re.search(r"\d+", urlsplit(book_link).path).group()
-            try:
-                response = requests.get(book_link)
-                response.raise_for_status()
-                raise_if_redirect(response)
-                page_html = response.text
+    book_links = parse_category(args.category_id,
+                                args.start_page,
+                                args.end_page,
+                                connection_timeout)
+    downloaded_books = []
+    for book_link in tqdm(book_links, desc="Downloading books"):
+        book_id = re.search(r"\d+", urlsplit(book_link).path).group()
+        try:
+            response = requests.get(book_link)
+            response.raise_for_status()
+            raise_if_redirect(response)
+            page_html = response.text
 
-                book = parse_book_page(page_html=page_html, page_url=book_link)
-                if not args.skip_txt:
-                    book["book_path"] = download_txt(
-                        f"{SITE_URL}/txt.php",
-                        f"{book['title']}.txt",
-                        books_folder,
-                        params={"id": book_id}
-                    )
-                if not args.skip_imgs:
-                    book["img_src"] = download_image(
-                        book.pop("image_url"),
-                        book.pop("image_filename"),
-                        images_folder
-                    )
-                downloaded_books.append(book)
-            except RedirectDetectedError:
-                # Метод write() используется чтобы прогресс-бар
-                # не ломался из-за вывода через print()
-                tqdm.write(f"Book with ID={book_id} wasn't "
-                           "downloaded because there is no TXT for this book.")
-            except requests.HTTPError:
-                tqdm.write(f"Book with ID={book_id} wasn't "
-                           "downloaded because URL used for "
-                           "downloading this book "
-                           "is wrong or incorrect.")
-            except requests.ConnectionError:
-                tqdm.write(f"Book with ID={book_id} wasn't "
-                           "downloaded because of Connection error. "
-                           f"Waiting {connection_timeout} seconds for "
-                           "internet connection to restore.")
-                time.sleep(connection_timeout)
-        downloaded_books = json.dumps(downloaded_books, ensure_ascii=False)
-        with open(os.path.join(master_folder, "books_metadata.json"),
-                  "w+",
-                  encoding="utf-8") as file:
-            file.write(downloaded_books)
-    except RedirectDetectedError:
-        tqdm.write("Unable to download links. Probably out of pages count."
-                   " Check the amount of pages per chosen category.")
-    except requests.HTTPError:
-        tqdm.write("Unable to download links. "
-                   "Wrong URL. Check the category ID.")
-    except requests.ConnectionError:
-        tqdm.write("Connection Error! "
-                   "Please check your internet connection.")
+            book = parse_book_page(page_html=page_html, page_url=book_link)
+            if not args.skip_txt:
+                book["book_path"] = download_txt(
+                    f"{SITE_URL}/txt.php",
+                    f"{book['title']}.txt",
+                    books_folder,
+                    params={"id": book_id}
+                )
+            if not args.skip_imgs:
+                book["img_src"] = download_image(
+                    book.pop("image_url"),
+                    book.pop("image_filename"),
+                    images_folder
+                )
+            downloaded_books.append(book)
+        except RedirectDetectedError:
+            # Метод write() используется чтобы прогресс-бар
+            # не ломался из-за вывода через print()
+            tqdm.write(f"Book with ID={book_id} wasn't "
+                       "downloaded because there is no TXT for this book.")
+        except requests.HTTPError:
+            tqdm.write(f"Book with ID={book_id} wasn't "
+                       "downloaded because URL used for "
+                       "downloading this book "
+                       "is wrong or incorrect.")
+        except requests.ConnectionError:
+            tqdm.write(f"Book with ID={book_id} wasn't "
+                       "downloaded because of Connection error. "
+                       f"Waiting {connection_timeout} seconds for "
+                       "internet connection to restore.")
+            time.sleep(connection_timeout)
+    downloaded_books = json.dumps(downloaded_books, ensure_ascii=False)
+    with open(os.path.join(master_folder, "books_metadata.json"),
+              "w+",
+              encoding="utf-8") as file:
+        file.write(downloaded_books)
 
 
 def parse_category(category_id: int,
                    start_page: int = 1,
-                   end_page: int = None) -> list:
+                   end_page: int = None,
+                   connection_timeout: int = 60) -> list:
     """
     Parses the book links from a given category on the Tululu website.
 
     :param category_id: ID of the category to download
     :param start_page: page number from which to begin downloading
     :param end_page: end page where to stop
+    :param connection_timeout: time to wait before next request if connection is lost
     :return: A list of book links
     """
     book_links = []
@@ -122,19 +100,34 @@ def parse_category(category_id: int,
                                   f"category with ID={category_id}"):
         category_url = f"{SITE_URL}/l{category_id}/{page_index}/"
 
-        response = requests.get(category_url)
-        response.raise_for_status()
-        raise_if_redirect(response)
-        page_html = response.text
+        try:
+            response = requests.get(category_url)
+            response.raise_for_status()
+            raise_if_redirect(response)
+            page_html = response.text
 
-        soup = BeautifulSoup(page_html, "lxml")
-        selector = "div[id='content'] table.d_book"
-        books = soup.select(selector)
-        for book in books:
-            url_selector = "a"
-            book_url = book.select_one(url_selector).get("href")
-            book_full_url = urljoin(category_url, book_url)
-            book_links.append(book_full_url)
+            soup = BeautifulSoup(page_html, "lxml")
+            selector = "div[id='content'] table.d_book"
+            books = soup.select(selector)
+            for book in books:
+                url_selector = "a"
+                book_url = book.select_one(url_selector).get("href")
+                book_full_url = urljoin(category_url, book_url)
+                book_links.append(book_full_url)
+        except RedirectDetectedError:
+            tqdm.write(f"Unable to download links from page №{page_index}. "
+                       f"Probably out of pages count."
+                       f" Check the amount of pages per chosen category.")
+            break
+        except requests.HTTPError as ex:
+            tqdm.write("Unable to download links. "
+                       "Wrong URL. Check the category ID.")
+            raise ex
+        except requests.ConnectionError:
+            tqdm.write(f"Connection Error! "
+                       f"Links from page {page_index} won't be downloaded."
+                       f"Please check your internet connection.")
+            time.sleep(connection_timeout)
     return book_links
 
 
@@ -180,7 +173,7 @@ def parse_args():
         "-e",
         "--end_page",
         help="End page where to stop.",
-        default=None,
+        default=1000,
         type=int
     )
     arg_parser.add_argument(
