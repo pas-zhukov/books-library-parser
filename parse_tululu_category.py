@@ -118,10 +118,9 @@ def parse_category(category_id: int,
                        f"Probably out of pages count."
                        f" Check the amount of pages per chosen category.")
             break
-        except requests.HTTPError as ex:
-            tqdm.write("Unable to download links. "
-                       "Wrong URL. Check the category ID.")
-            raise ex
+        except requests.HTTPError:
+            tqdm.write(f"Unable to download links from page {page_index}. "
+                       f"Wrong URL. Check the category ID.")
         except requests.ConnectionError:
             tqdm.write(f"Connection Error! "
                        f"Links from page {page_index} won't be downloaded."
